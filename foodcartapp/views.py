@@ -1,4 +1,7 @@
-from django.http import JsonResponse
+import json
+import pprint
+
+from django.http import JsonResponse, HttpRequest
 from django.templatetags.static import static
 
 
@@ -57,6 +60,7 @@ def product_list_api(request):
     })
 
 
-def register_order(request):
-    # TODO это лишь заглушка
-    return JsonResponse({})
+def register_order(request: HttpRequest):
+    form_data = json.loads(request.body.decode())
+    pprint.pprint(form_data)
+    return JsonResponse(form_data)

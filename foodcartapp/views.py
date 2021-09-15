@@ -4,6 +4,9 @@ import pprint
 from django.http import JsonResponse, HttpRequest
 from django.templatetags.static import static
 import phonenumbers
+from rest_framework.decorators import api_view
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from .models import Product, Order, OrderItem, REGION_CODE
 
@@ -60,8 +63,9 @@ def product_list_api(request):
     })
 
 
-def register_order(request: HttpRequest):
-    form_data = json.loads(request.body.decode())
+@api_view(['POST'])
+def register_order(request: Request):
+    form_data = request.data
     pprint.pprint(form_data)
     pure_phone = phonenumbers.parse(form_data['phonenumber'], REGION_CODE)
     order = Order(first_name=form_data['firstname'],
@@ -76,4 +80,4 @@ def register_order(request: HttpRequest):
             product_id=order_item['product'],
             quantity=order_item['quantity'],
         )
-    return JsonResponse(form_data)
+    return Response(form_data)

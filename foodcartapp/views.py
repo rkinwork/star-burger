@@ -3,9 +3,9 @@ import pprint
 
 from django.http import JsonResponse, HttpRequest
 from django.templatetags.static import static
+import phonenumbers
 
-
-from .models import Product
+from .models import Product, Order, OrderItem, REGION_CODE
 
 
 def banners_list_api(request):
@@ -63,4 +63,17 @@ def product_list_api(request):
 def register_order(request: HttpRequest):
     form_data = json.loads(request.body.decode())
     pprint.pprint(form_data)
+    pure_phone = phonenumbers.parse(form_data['phonenumber'], REGION_CODE)
+    order = Order(first_name=form_data['firstname'],
+                  last_name=form_data['lastname'],
+                  phone_number=pure_phone,
+                  address=form_data['address'],
+                  )
+    order.save()
+    for order_item in form_data['products']:
+        OrderItem.objects.create(
+            order=order,
+            product_id=order_item['product'],
+            quantity=order_item['quantity'],
+        )
     return JsonResponse(form_data)

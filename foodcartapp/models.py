@@ -1,6 +1,8 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from phonenumber_field.modelfields import PhoneNumberField
 
+REGION_CODE = 'RU'
 
 class Restaurant(models.Model):
     name = models.CharField(
@@ -30,8 +32,8 @@ class ProductQuerySet(models.QuerySet):
     def available(self):
         products = (
             RestaurantMenuItem.objects
-            .filter(availability=True)
-            .values_list('product')
+                .filter(availability=True)
+                .values_list('product')
         )
         return self.filter(pk__in=products)
 
@@ -121,3 +123,44 @@ class RestaurantMenuItem(models.Model):
 
     def __str__(self):
         return f"{self.restaurant.name} - {self.product.name}"
+
+
+class Order(models.Model):
+    address = models.CharField('адрес', max_length=200)
+    first_name = models.CharField('имя', max_length=50)
+    last_name = models.CharField('фамилия', max_length=50)
+    phone_number = PhoneNumberField('телефон', region=REGION_CODE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'заказ'
+        verbose_name_plural = 'заказы'
+
+    def __str__(self):
+        return f'{self.first_name} {self.last_name} {self.address}'
+
+
+class OrderItem(models.Model):
+    product = models.ForeignKey('Product',
+                                related_name='items',
+                                on_delete=models.CASCADE,
+                                verbose_name='продукт в заказе',
+                                )
+    order = models.ForeignKey('Order',
+                              related_name='items',
+                              on_delete=models.CASCADE,
+                              verbose_name='заказ',
+                              )
+    quantity = models.IntegerField('количество',
+                                   validators=[
+                                       MinValueValidator(0),
+                                   ],
+                                   )
+
+    class Meta:
+        verbose_name = 'наименование'
+        verbose_name_plural = 'наименований'
+
+    def __str__(self):
+        return f'{self.product} {self.order}'
+

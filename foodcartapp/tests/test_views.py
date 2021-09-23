@@ -102,15 +102,26 @@ class TestNewOrder(TestCase):
             ),
 
         )
+        self.client = Client()
 
-    def test_invalid_cases(self):
-        client = Client()
+    def test_creation_cases(self):
         for case in self.cases:
             with self.subTest(msg=case.name):
-                response = client.post(
+                response = self.client.post(
                     reverse('foodcartapp:order'),
                     data=case.payload,
                     content_type='application/json',
                 )
                 self.assertEqual(response.status_code, case.status_code)
 
+    def test_creation_response(self):
+        payload = """{"products": [{"product": 1, "quantity": 1}],
+        "firstname": "Василий", "lastname": "Васильевич",
+        "phonenumber": "+79123456789", "address": "Лондон"}"""
+        response = self.client.post(
+            reverse('foodcartapp:order'),
+            data=payload,
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('id', response.data)

@@ -1,8 +1,12 @@
 from django.db import models
 from django.core.validators import MinValueValidator
 from phonenumber_field.modelfields import PhoneNumberField
+from phonenumber_field import serializerfields
+from rest_framework.serializers import ModelSerializer
+from rest_framework import serializers
 
 REGION_CODE = 'RU'
+
 
 class Restaurant(models.Model):
     name = models.CharField(
@@ -127,9 +131,9 @@ class RestaurantMenuItem(models.Model):
 
 class Order(models.Model):
     address = models.CharField('адрес', max_length=200)
-    first_name = models.CharField('имя', max_length=50)
-    last_name = models.CharField('фамилия', max_length=50)
-    phone_number = PhoneNumberField('телефон', region=REGION_CODE)
+    firstname = models.CharField('имя', max_length=50)
+    lastname = models.CharField('фамилия', max_length=50)
+    phonenumber = PhoneNumberField('телефон', region=REGION_CODE)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -137,7 +141,7 @@ class Order(models.Model):
         verbose_name_plural = 'заказы'
 
     def __str__(self):
-        return f'{self.first_name} {self.last_name} {self.address}'
+        return f'{self.firstname} {self.lastname} {self.address}'
 
 
 class OrderItem(models.Model):
@@ -164,3 +168,36 @@ class OrderItem(models.Model):
     def __str__(self):
         return f'{self.product} {self.order}'
 
+
+class OrderItemSerializer(ModelSerializer):
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
+
+    class Meta:
+        model = OrderItem
+        fields = ('product', 'quantity')
+
+
+class OrderSerializer(ModelSerializer):
+    phonenumber = serializerfields.PhoneNumberField()
+    products = OrderItemSerializer(many=True,
+                                   allow_empty=False,
+                                   source='items',
+                                   )
+
+    class Meta:
+        model = Order
+        fields = (
+            'address',
+            'firstname',
+            'lastname',
+            'phonenumber',
+            'products',
+        )
+
+    def create(self, validated_data):
+        items = validated_data.pop('items')
+        order = Order.objects.create(**validated_data)
+        for order_item in items:
+            OrderItem.objects.create(order=order, **order_item)
+
+        return order

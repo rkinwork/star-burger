@@ -7,8 +7,9 @@ import phonenumbers
 from rest_framework.decorators import api_view
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework import status
 
-from .models import Product, Order, OrderItem, REGION_CODE
+from .models import Product, Order, OrderItem, REGION_CODE, OrderSerializer
 
 
 def banners_list_api(request):
@@ -66,18 +67,7 @@ def product_list_api(request):
 @api_view(['POST'])
 def register_order(request: Request):
     form_data = request.data
-    pprint.pprint(form_data)
-    pure_phone = phonenumbers.parse(form_data['phonenumber'], REGION_CODE)
-    order = Order(first_name=form_data['firstname'],
-                  last_name=form_data['lastname'],
-                  phone_number=pure_phone,
-                  address=form_data['address'],
-                  )
-    order.save()
-    for order_item in form_data['products']:
-        OrderItem.objects.create(
-            order=order,
-            product_id=order_item['product'],
-            quantity=order_item['quantity'],
-        )
-    return Response(form_data)
+    serializer = OrderSerializer(data=form_data)
+    if serializer.is_valid(raise_exception=True):
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

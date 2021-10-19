@@ -129,12 +129,24 @@ class RestaurantMenuItem(models.Model):
         return f"{self.restaurant.name} - {self.product.name}"
 
 
+class NewOrderManager(models.QuerySet):
+    def new(self):
+        return self.filter(is_new_order=True)
+
+
 class Order(models.Model):
     address = models.CharField('адрес', max_length=200)
     firstname = models.CharField('имя', max_length=50)
     lastname = models.CharField('фамилия', max_length=50)
     phonenumber = PhoneNumberField('телефон', region=REGION_CODE)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_new_order = models.BooleanField(verbose_name='Новый заказ', default=True)
+
+    objects = NewOrderManager.as_manager()
+
+    @property
+    def client(self):
+        return f'{self.firstname} {self.lastname}'
 
     class Meta:
         verbose_name = 'заказ'

@@ -133,6 +133,12 @@ class NewOrderManager(models.QuerySet):
     def new(self):
         return self.filter(is_new_order=True)
 
+    def total_price(self):
+        return self.annotate(total_price=models.Sum(
+            models.F('items__product__price') * models.F('items__quantity')
+        )
+        )
+
 
 class Order(models.Model):
     address = models.CharField('адрес', max_length=200)

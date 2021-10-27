@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.core.validators import MinValueValidator
 from django.dispatch import receiver
 from phonenumber_field.modelfields import PhoneNumberField
@@ -230,8 +230,9 @@ class OrderSerializer(ModelSerializer):
 
     def create(self, validated_data):
         items = validated_data.pop('items')
-        order = Order.objects.create(**validated_data)
-        for order_item in items:
-            OrderItem.objects.create(order=order, **order_item)
+        with transaction.atomic():
+            order = Order.objects.create(**validated_data)
+            for order_item in items:
+                OrderItem.objects.create(order=order, **order_item)
 
         return order

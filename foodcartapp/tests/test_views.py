@@ -3,13 +3,13 @@ from typing import NamedTuple
 from rest_framework import status
 from django.test import TestCase, Client
 from django.urls import reverse
-from ..models import Product
+from ..models import Product, Order
 
 
 class CheckCase(NamedTuple):
     name: str
     payload: str
-    status_code: int
+    want: int
 
 
 class TestNewOrder(TestCase):
@@ -112,7 +112,7 @@ class TestNewOrder(TestCase):
                     data=case.payload,
                     content_type='application/json',
                 )
-                self.assertEqual(response.status_code, case.status_code)
+                self.assertEqual(response.want, case.want)
 
     def test_creation_response(self):
         payload = """{"products": [{"product": 1, "quantity": 1}],
@@ -123,5 +123,48 @@ class TestNewOrder(TestCase):
             data=payload,
             content_type='application/json',
         )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.want, status.HTTP_201_CREATED)
         self.assertIn('id', response.data)
+
+    def test_transaction_behavior(self):
+        cases = (
+            CheckCase(
+                'order with not existing product',
+                """{"products": [{"product": 9999, "quantity": 1}],
+                "firstname": "Иван", "lastname": "Петров",
+                "phonenumber": "+79291000000", "address": "Москва"}""",
+                0,
+            ),
+            CheckCase(
+                'products are absent',
+                """{"firstname": "Иван", "lastname": "Петров",
+                "phonenumber": "+79291000000", "address": "Москва"}""",
+                0
+            ),
+            CheckCase(
+                'products empty list',
+                """{"products": [],
+                "firstname": "Иван", "lastname": "Петров",
+                "phonenumber": "+79291000000",
+                "address": "Москва"}""",
+                0
+            ),
+            CheckCase(
+                'valid order',
+                """{"products": [{"product": 1, "quantity": 1}],
+                "firstname": "Иван", "lastname": "Петров",
+                "phonenumber": "+79291000000", "address": "Москва"}""",
+                1,
+            ),
+        )
+        for case in cases:
+            with self.subTest(msg=case.name):
+                self.client.post(
+                    reverse('foodcartapp:order'),
+                    data=case.payload,
+                    content_type='application/json',
+                )
+                orders = Order.objects.all()
+                self.assertEqual(len(orders), case.want)
+                orders.delete()
+

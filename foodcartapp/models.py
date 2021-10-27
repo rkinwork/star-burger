@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from django.dispatch import receiver
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field import serializerfields
 from rest_framework.serializers import ModelSerializer
@@ -135,7 +136,7 @@ class NewOrderManager(models.QuerySet):
 
     def total_price(self):
         return self.annotate(total_price=models.Sum(
-            models.F('items__product__price') * models.F('items__quantity')
+            models.F('items__item_price') * models.F('items__quantity')
         )
         )
 
@@ -178,6 +179,13 @@ class OrderItem(models.Model):
                                        MinValueValidator(0),
                                    ],
                                    )
+    item_price = models.DecimalField('цена в заказе',
+                                     max_digits=9,
+                                     decimal_places=2,
+                                     validators=[
+                                         MinValueValidator(0)
+                                     ]
+                                     )
 
     class Meta:
         verbose_name = 'наименование'
@@ -185,6 +193,12 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f'{self.product} {self.order}'
+
+
+@receiver(models.signals.pre_save, sender=OrderItem)
+def calculate_total(sender, instance: OrderItem, **kwargs):
+    if instance.id is None:
+        instance.item_price = instance.product.price
 
 
 class OrderItemSerializer(ModelSerializer):

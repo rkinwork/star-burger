@@ -139,6 +139,12 @@ class OrderStatus(models.TextChoices):
     FINISHED = 'Fi', _('Завершенный')
 
 
+class PaymentMethod(models.TextChoices):
+    UNKNOWN = 'NA', _('Не известно')
+    ONLINE = 'ON', _('Электронно')
+    CASH = 'CH', _('Наличностью')
+
+
 class NewOrderManager(models.QuerySet):
     def new(self):
         return self.filter(order_status=OrderStatus.NEW)
@@ -162,6 +168,11 @@ class Order(models.Model):
         max_length=2,
         choices=OrderStatus.choices,
         default=OrderStatus.NEW,
+    )
+    payment_method = models.CharField(
+        max_length=2,
+        choices=PaymentMethod.choices,
+        default=PaymentMethod.UNKNOWN,
     )
     comment = models.TextField('комментарий', blank=True)
 

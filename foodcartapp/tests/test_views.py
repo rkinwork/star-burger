@@ -112,7 +112,7 @@ class TestNewOrder(TestCase):
                     data=case.payload,
                     content_type='application/json',
                 )
-                self.assertEqual(response.want, case.want)
+                self.assertEqual(response.status_code, case.want)
 
     def test_creation_response(self):
         payload = """{"products": [{"product": 1, "quantity": 1}],
@@ -123,7 +123,7 @@ class TestNewOrder(TestCase):
             data=payload,
             content_type='application/json',
         )
-        self.assertEqual(response.want, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn('id', response.data)
 
     def test_transaction_behavior(self):

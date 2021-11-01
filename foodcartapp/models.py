@@ -1,6 +1,7 @@
 from django.db import models, transaction
 from django.core.validators import MinValueValidator
 from django.dispatch import receiver
+from django.utils.translation import gettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field import serializerfields
 from rest_framework.serializers import ModelSerializer
@@ -130,9 +131,15 @@ class RestaurantMenuItem(models.Model):
         return f"{self.restaurant.name} - {self.product.name}"
 
 
+class OrderStatus(models.TextChoices):
+    NEW = 'Ne', _('Новый заказ')
+    PROCESSED = 'Pr', _('Обработанный')
+    FINISHED = 'Fi', _('Завершенный')
+
+
 class NewOrderManager(models.QuerySet):
     def new(self):
-        return self.filter(is_new_order=True)
+        return self.filter(order_status=OrderStatus.NEW)
 
     def total_price(self):
         return self.annotate(total_price=models.Sum(
@@ -147,7 +154,11 @@ class Order(models.Model):
     lastname = models.CharField('фамилия', max_length=50)
     phonenumber = PhoneNumberField('телефон', region=REGION_CODE)
     created_at = models.DateTimeField(auto_now_add=True)
-    is_new_order = models.BooleanField(verbose_name='Новый заказ', default=True)
+    order_status = models.CharField(
+        max_length=2,
+        choices=OrderStatus.choices,
+        default=OrderStatus.NEW,
+    )
 
     objects = NewOrderManager.as_manager()
 

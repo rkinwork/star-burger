@@ -175,6 +175,13 @@ class Order(models.Model):
         default=PaymentMethod.UNKNOWN,
     )
     comment = models.TextField('комментарий', blank=True)
+    restaurant = models.ForeignKey('Restaurant',
+                                   related_name='orders',
+                                   on_delete=models.SET_NULL,
+                                   verbose_name='ресторан исполнитель',
+                                   blank=True,
+                                   null=True,
+                                   )
 
     objects = NewOrderManager.as_manager()
 

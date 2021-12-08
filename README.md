@@ -59,6 +59,11 @@ pip install -r requirements.txt
 python manage.py migrate
 ```
 
+[Опционально] Наполнить тестовыми данными
+```sh
+make init_populate_db
+```
+
 Запустите сервер:
 
 ```sh

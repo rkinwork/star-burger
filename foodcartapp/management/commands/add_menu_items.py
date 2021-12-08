@@ -4,7 +4,7 @@ from foodcartapp.models import Restaurant, Product, RestaurantMenuItem
 
 
 class Command(BaseCommand):
-    help = 'Базовый импорт ресторанов'
+    help = 'Создание случайного меню'
 
     def handle(self, *args, **options):
         for restaurant in Restaurant.objects.all():

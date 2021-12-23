@@ -1,3 +1,6 @@
+from typing import Iterable
+from collections import Counter
+
 from django.utils import timezone
 
 from django.db import models, transaction
@@ -270,3 +273,32 @@ class OrderSerializer(ModelSerializer):
                 OrderItem.objects.create(order=order, **order_item)
 
         return order
+
+
+def enrich_orders_with_restaurants(orders: models.QuerySet) -> Iterable[Order]:
+
+    menu_items_prefetch = models.Prefetch(
+        'items__product__menu_items',
+        queryset=RestaurantMenuItem.objects.select_related('restaurant', 'product').filter(availability=True),
+    )
+    orders = orders.prefetch_related(menu_items_prefetch)
+
+    result_orders = []
+    for order in orders:
+        counter = Counter()
+        ordered_products = [order_item.product for order_item in order.items.all()]
+        menu_items = []
+        for product in ordered_products:
+            menu_items.extend(product.menu_items.all())
+
+        for menu_item in menu_items:
+            if menu_item.product in ordered_products:
+                counter[menu_item.restaurant] += 1
+
+        restaurants = [restaurant for restaurant, cnt in dict(counter).items() if cnt >= len(ordered_products)]
+        order.restaurants = restaurants
+        result_orders.append(order)
+
+    return result_orders
+
+

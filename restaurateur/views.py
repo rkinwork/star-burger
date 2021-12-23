@@ -8,7 +8,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 
 
-from foodcartapp.models import Product, Restaurant, Order
+from foodcartapp.models import Product, Restaurant, Order, enrich_orders_with_restaurants
 
 
 class Login(forms.Form):
@@ -97,6 +97,8 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
+    # sometimes in future we can add pagination
+    orders = enrich_orders_with_restaurants(Order.objects.new().total_price())
     return render(request, template_name='order_items.html', context={
-        'order_items': Order.objects.new().total_price()
+        'order_items': orders
     })

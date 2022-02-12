@@ -1,9 +1,13 @@
 from typing import Iterable
 from collections import Counter
+from operator import attrgetter
+import logging
+from dataclasses import dataclass
 
 from django.utils import timezone
 
 from django.db import models, transaction
+from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
@@ -11,8 +15,11 @@ from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field import serializerfields
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
+from geopy import distance
+import requests
 
 REGION_CODE = 'RU'
+REMOTENESS_ATTR_NAME = 'remoteness'
 
 
 class Restaurant(models.Model):
@@ -275,8 +282,13 @@ class OrderSerializer(ModelSerializer):
         return order
 
 
-def enrich_orders_with_restaurants(orders: models.QuerySet) -> Iterable[Order]:
+@dataclass
+class RestaurantItem:
+    name: str
+    distance: [float] = None
 
+
+def enrich_orders_with_restaurants(orders: models.QuerySet) -> Iterable[Order]:
     menu_items_prefetch = models.Prefetch(
         'items__product__menu_items',
         queryset=RestaurantMenuItem.objects.select_related('restaurant', 'product').filter(availability=True),
@@ -295,10 +307,52 @@ def enrich_orders_with_restaurants(orders: models.QuerySet) -> Iterable[Order]:
             if menu_item.product in ordered_products:
                 counter[menu_item.restaurant] += 1
 
-        restaurants = [restaurant for restaurant, cnt in dict(counter).items() if cnt >= len(ordered_products)]
-        order.restaurants = restaurants
+        restaurants = []
+        for restaurant in [restaurant for restaurant, cnt in dict(counter).items() if cnt >= len(ordered_products)]:
+            restaurants.append(
+                RestaurantItem(name=restaurant.name,
+                               distance=get_distance(restaurant.address, order.address),
+                               )
+            )
+        order.restaurants = sorted(restaurants, key=lambda e: (e.distance is None, e.distance))
         result_orders.append(order)
 
     return result_orders
 
 
+def get_distance(address_a: str, address_b: str) -> [int]:
+    api_key = settings.YANDEX_MAP_API_KEY
+    address_a_coords = fetch_coordinates(apikey=api_key, address=address_a)
+    address_b_coords = fetch_coordinates(apikey=api_key, address=address_b)
+    if not all((address_b_coords, address_b_coords)):
+        return None
+    address_a_coords = float(address_a_coords[0]), float(address_a_coords[1])
+    address_b_coords = float(address_b_coords[0]), float(address_b_coords[1])
+    return distance.distance(address_a_coords, address_b_coords).kilometers
+
+
+def fetch_coordinates(apikey, address):
+    if not apikey:
+        logging.warning('STAR_BURGER__YANDEX_MAP_API_KEY has not been set')
+        return None
+
+    base_url = "https://geocode-maps.yandex.ru/1.x"
+    response = requests.get(base_url, params={
+        "geocode": address,
+        "apikey": apikey,
+        "format": "json",
+    })
+    if response.status_code == 403:
+        logging.warning('problems with authorizing to {}, check your STAR_BURGER__YANDEX_MAP_API_KEY'.format(base_url))
+        return None
+
+    response.raise_for_status()
+    found_places = response.json()['response']['GeoObjectCollection']['featureMember']
+
+    if not found_places:
+        logging.warning('cannot find coordinates for address: {}'.format(address))
+        return None
+
+    most_relevant = found_places[0]
+    lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
+    return lon, lat

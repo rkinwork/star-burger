@@ -12,7 +12,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 SECRET_KEY = env('SECRET_KEY', 'etirgvonenrfnoerngorenogneongg334g')
 DEBUG = env.bool('DEBUG', True)
-YANDEX_MAP_API_KEY = env('STAR_BURGER__YANDEX_MAP_API_KEY', '')
+YANDEX_MAP_API_KEY = env('STAR_BURGER__YANDEX_MAP_API_KEY')
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', ['127.0.0.1', 'localhost'])
 

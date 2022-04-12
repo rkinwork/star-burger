@@ -15,7 +15,10 @@ class Address(models.Model):
     )
     lat = models.FloatField('Широта')
     long = models.FloatField('Долгота')
-    update_ts = models.DateTimeField(auto_now_add=True, blank=True)
+    update_ts = models.DateTimeField(auto_now_add=True,
+                                     blank=True,
+                                     db_index=True,
+                                     )
 
     class Meta:
         verbose_name = 'адрес'

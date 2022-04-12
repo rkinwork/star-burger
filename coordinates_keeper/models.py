@@ -18,6 +18,7 @@ class Address(models.Model):
     update_ts = models.DateTimeField(auto_now_add=True,
                                      blank=True,
                                      db_index=True,
+                                     verbose_name='изменён в',
                                      )
 
     class Meta:

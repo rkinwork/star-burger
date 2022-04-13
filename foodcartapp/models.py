@@ -203,7 +203,7 @@ class Order(models.Model):
         return f'{self.firstname} {self.lastname} {self.address}'
 
     @property
-    def client(self):
+    def client_full_name(self):
         return f'{self.firstname} {self.lastname}'
 
 

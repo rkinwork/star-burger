@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.db.models import F
-from ..models import Order, Product, OrderItem, OrderStatus
+from ..models import Order, Product, OrderItem
 
 
 class OrderTest(TestCase):
@@ -34,7 +34,7 @@ class OrderTest(TestCase):
                 "lastname": "Петров",
                 "phonenumber": "+79291000000",
                 "address": "Москва",
-                "order_status": OrderStatus.PROCESSED,
+                "order_status": Order.OrderStatus.PROCESSED,
             }
         )
         for order in orders_raw:

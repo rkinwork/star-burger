@@ -141,21 +141,9 @@ class RestaurantMenuItem(models.Model):
         return f"{self.restaurant.name} - {self.product.name}"
 
 
-class OrderStatus(models.TextChoices):
-    NEW = 'Ne', _('Новый заказ')
-    PROCESSED = 'Pr', _('Обработанный')
-    FINISHED = 'Fi', _('Завершенный')
-
-
-class PaymentMethod(models.TextChoices):
-    UNKNOWN = 'NA', _('Не известно')
-    ONLINE = 'ON', _('Электронно')
-    CASH = 'CH', _('Наличностью')
-
-
 class NewOrderManager(models.QuerySet):
     def new(self):
-        return self.filter(order_status=OrderStatus.NEW)
+        return self.filter(order_status=Order.OrderStatus.NEW)
 
     def total_price(self):
         return self.annotate(total_price=models.Sum(
@@ -165,6 +153,16 @@ class NewOrderManager(models.QuerySet):
 
 
 class Order(models.Model):
+    class OrderStatus(models.TextChoices):
+        NEW = 'Ne', _('Новый заказ')
+        PROCESSED = 'Pr', _('Обработанный')
+        FINISHED = 'Fi', _('Завершенный')
+
+    class PaymentMethod(models.TextChoices):
+        UNKNOWN = 'NA', _('Не известно')
+        ONLINE = 'ON', _('Электронно')
+        CASH = 'CH', _('Наличностью')
+
     address = models.CharField('адрес', max_length=200)
     firstname = models.CharField('имя', max_length=50)
     lastname = models.CharField('фамилия', max_length=50)
@@ -197,16 +195,16 @@ class Order(models.Model):
 
     objects = NewOrderManager.as_manager()
 
-    @property
-    def client(self):
-        return f'{self.firstname} {self.lastname}'
-
     class Meta:
         verbose_name = 'заказ'
         verbose_name_plural = 'заказы'
 
     def __str__(self):
         return f'{self.firstname} {self.lastname} {self.address}'
+
+    @property
+    def client(self):
+        return f'{self.firstname} {self.lastname}'
 
 
 class OrderItem(models.Model):
@@ -294,7 +292,8 @@ class RestaurantItem:
 def enrich_orders_with_restaurants(orders: models.QuerySet) -> Iterable[Order]:
     menu_items_prefetch = models.Prefetch(
         'items__product__menu_items',
-        queryset=RestaurantMenuItem.objects.select_related('restaurant', 'product').filter(availability=True),
+        queryset=RestaurantMenuItem.objects.select_related('restaurant',
+                                                           'product').filter(availability=True),
     )
     orders = orders.prefetch_related(menu_items_prefetch)
 
@@ -311,7 +310,9 @@ def enrich_orders_with_restaurants(orders: models.QuerySet) -> Iterable[Order]:
                 counter[menu_item.restaurant] += 1
 
         restaurants = []
-        for restaurant in [restaurant for restaurant, cnt in dict(counter).items() if cnt >= len(ordered_products)]:
+        for restaurant in [restaurant
+                           for restaurant, cnt in dict(counter).items()
+                           if cnt >= len(ordered_products)]:
             restaurants.append(
                 RestaurantItem(name=restaurant.name,
                                address=restaurant.address,
@@ -327,13 +328,14 @@ def enrich_orders_with_restaurants(orders: models.QuerySet) -> Iterable[Order]:
         addresses_raw.add(order.address)
         for rest in order.restaurants:
             addresses_raw.add(rest.address)
-    d = Distance(addresses_raw=addresses_raw)
+    dist = Distance(addresses_raw=addresses_raw)
 
     for order in result_orders:
         order_address = order.address
         for rest in order.restaurants:
-            rest.distance = d.get_distance(order_address, rest.address)
+            rest.distance = dist.get_distance(order_address, rest.address)
 
-        order.restaurants = sorted(order.restaurants, key=lambda e: (e.distance is None, e.distance))
+        order.restaurants = sorted(order.restaurants,
+                                   key=lambda e: (e.distance is None, e.distance))
 
     return result_orders

@@ -51,8 +51,10 @@ class Distance:
     def get_distance(self, address_a: str, address_b: str) -> [int]:
         address_a = address_a.lower()
         address_b = address_b.lower()
-        address_a_coords = self._address_lookup[address_a]['long'], self._address_lookup[address_a]['lat']
-        address_b_coords = self._address_lookup[address_b]['long'], self._address_lookup[address_b]['lat']
+        address_a_coords = (self._address_lookup[address_a]['long'],
+                            self._address_lookup[address_a]['lat'])
+        address_b_coords = (self._address_lookup[address_b]['long'],
+                            self._address_lookup[address_b]['lat'])
         if not all((address_a_coords, address_b_coords)):
             return None
         return distance.distance(address_a_coords, address_b_coords).kilometers
@@ -78,7 +80,7 @@ class Distance:
         found_places = response.json()['response']['GeoObjectCollection']['featureMember']
 
         if not found_places:
-            logging.warning('cannot find coordinates for address: {}'.format(address))
+            logging.warning('cannot find coordinates for address: {}' % address)
             return None, None
 
         most_relevant = found_places[0]

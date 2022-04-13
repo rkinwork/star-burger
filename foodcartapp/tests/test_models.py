@@ -142,6 +142,21 @@ class TestOrderItem(TestCase):
         except ValidationError as err:
             self.assertIn('item_price', err.message_dict)
 
+    def test_negative_quantity(self):
+        order = Order.objects.first()
+        product = Product.objects.first()
+        order_item = OrderItem(
+            order=order,
+            product=product,
+            quantity=-2,
+            item_price=100
+        )
+
+        try:
+            order_item.full_clean()
+        except ValidationError as err:
+            self.assertIn('quantity', err.message_dict)
+
     def test_pre_save_signal(self):
         order = Order.objects.first()
         product = Product.objects.first()

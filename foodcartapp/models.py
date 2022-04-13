@@ -85,7 +85,7 @@ class Product(models.Model):
         'цена',
         max_digits=8,
         decimal_places=2,
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(0.01)]
     )
     image = models.ImageField(
         'картинка'
@@ -220,14 +220,14 @@ class OrderItem(models.Model):
                               )
     quantity = models.IntegerField('количество',
                                    validators=[
-                                       MinValueValidator(0),
+                                       MinValueValidator(1),
                                    ],
                                    )
     item_price = models.DecimalField('цена в заказе',
                                      max_digits=9,
                                      decimal_places=2,
                                      validators=[
-                                         MinValueValidator(0)
+                                         MinValueValidator(0.01)
                                      ]
                                      )
 

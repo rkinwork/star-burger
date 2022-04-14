@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from random import choices, randint
 
-from foodcartapp.models import Order, OrderItem, RestaurantMenuItem
+from foodcartapp.models import Order, OrderItem, Product
 
 
 class Command(BaseCommand):
@@ -11,8 +11,7 @@ class Command(BaseCommand):
         parser.add_argument('n', type=int, default=3, nargs='?', help='number of orders to add')
 
     def handle(self, *args, **options):
-        m_items = RestaurantMenuItem.objects.filter(availability=True).all()
-        product_ids = tuple(set(m_item.product_id for m_item in m_items))
+        products = tuple(Product.objects.available().all())
         last_order = Order.objects.last()
         max_id = last_order.id if last_order else 1
         for i in range(max_id, max_id + options['n']):
@@ -21,10 +20,11 @@ class Command(BaseCommand):
                                          lastname=f'{i}_customer_last_name',
                                          phonenumber=f'+7{i}031000000',
                                          )
-            for product_id in choices(product_ids, k=3):
-                OrderItem.objects.create(product_id=product_id,
+            for product in choices(products, k=3):
+                OrderItem.objects.create(product_id=product,
                                          order=order,
                                          quantity=randint(1, 3),
+                                         item_price=product.price,
                                          )
 
         self.stdout.write(

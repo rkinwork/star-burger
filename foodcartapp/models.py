@@ -239,12 +239,6 @@ class OrderItem(models.Model):
         return f'{self.product} {self.order}'
 
 
-@receiver(models.signals.pre_save, sender=OrderItem)
-def calculate_total(sender, instance: OrderItem, **kwargs):
-    if instance.id is None:
-        instance.item_price = instance.product.price
-
-
 class OrderItemSerializer(ModelSerializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
 
@@ -277,7 +271,11 @@ class OrderSerializer(ModelSerializer):
         with transaction.atomic():
             order = Order.objects.create(**validated_data)
             for order_item in items:
-                OrderItem.objects.create(order=order, **order_item)
+                OrderItem.objects.create(order=order,
+                                         product=order_item['product'],
+                                         quantity=order_item['quantity'],
+                                         item_price=order_item['product'].price,
+                                         )
 
         return order
 

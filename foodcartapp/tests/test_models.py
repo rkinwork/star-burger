@@ -70,6 +70,7 @@ class OrderTest(TestCase):
             OrderItem.objects.create(product=product,
                                      order=order,
                                      quantity=quantity,
+                                     item_price=product.price,
                                      )
 
         order = Order.objects.total_price()[0]
@@ -103,6 +104,7 @@ class OrderTest(TestCase):
             OrderItem.objects.create(product=product,
                                      order=order,
                                      quantity=quantity,
+                                     item_price=product.price,
                                      )
 
         order = Order.objects.total_price()[0]

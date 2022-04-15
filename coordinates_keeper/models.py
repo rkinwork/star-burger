@@ -1,5 +1,5 @@
 import logging
-from typing import Iterable
+from typing import Tuple, Iterable
 
 from django.db import models
 from django.conf import settings
@@ -31,9 +31,9 @@ class Address(models.Model):
 
 class Distance:
 
-    def __init__(self, addresses_raw: Iterable[str]):
-        addresses_raw = [addr.lower() for addr in addresses_raw]
-        self._address_lookup = self._prep_addresses(addresses_raw)
+    def __init__(self, addresses_names: Iterable[str]):
+        addresses_names = [addr.lower() for addr in addresses_names]
+        self._address_lookup = self._prep_addresses(addresses_names)
 
     def _prep_addresses(self, raw_addresses):
         address_lookup = Address.objects.filter(

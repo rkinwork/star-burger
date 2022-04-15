@@ -312,7 +312,9 @@ def enrich_orders_with_restaurants(orders: models.QuerySet) -> Iterable[Order]:
     orders_with_menu_items = orders.prefetch_related(menu_items_prefetch)
 
     orders_with_available_restaurants = []
+    addresses_raw = set()
     for order in orders_with_menu_items:
+        addresses_raw.add(order.address)
         counter = Counter()
         ordered_products = [order_item.product for order_item in
                             order.items.all()]
@@ -328,24 +330,16 @@ def enrich_orders_with_restaurants(orders: models.QuerySet) -> Iterable[Order]:
         for restaurant in [restaurant
                            for restaurant, cnt in dict(counter).items()
                            if cnt >= len(ordered_products)]:
+            addresses_raw.add(restaurant.address)
             restaurants.append(
                 RestaurantItem(name=restaurant.name,
                                address=restaurant.address,
                                )
             )
         order.restaurants = restaurants
-        order.restaurants = sorted(restaurants,
-                                   key=lambda e: (e.distance is None,
-                                                  e.distance))
         orders_with_available_restaurants.append(order)
 
-    addresses_raw = set()
-    for order in orders_with_available_restaurants:
-        addresses_raw.add(order.address)
-        for rest in order.restaurants:
-            addresses_raw.add(rest.address)
-
-    dist = Distance(addresses_raw=addresses_raw)
+    dist = Distance(addresses_names=addresses_raw)
     for order in orders_with_available_restaurants:
         order_address = order.address
         for rest in order.restaurants:

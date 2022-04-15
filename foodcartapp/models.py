@@ -339,7 +339,6 @@ def enrich_orders_with_restaurants(orders: models.QuerySet) -> Iterable[Order]:
                                                   e.distance))
         orders_with_available_restaurants.append(order)
 
-    # prepare coordinates and addresses
     addresses_raw = set()
     for order in orders_with_available_restaurants:
         addresses_raw.add(order.address)

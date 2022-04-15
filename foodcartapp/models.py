@@ -7,7 +7,6 @@ from django.utils import timezone
 from django.db import models, transaction
 
 from django.core.validators import MinValueValidator
-from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field import serializerfields
@@ -166,10 +165,24 @@ class Order(models.Model):
     address = models.CharField('адрес', max_length=200)
     firstname = models.CharField('имя', max_length=50)
     lastname = models.CharField('фамилия', max_length=50)
-    phonenumber = PhoneNumberField('телефон', region=REGION_CODE, db_index=True)
-    created_at = models.DateTimeField('создан в', default=timezone.now, db_index=True)
-    called_at = models.DateTimeField('подтверждён в', blank=True, null=True, db_index=True)
-    delivered_at = models.DateTimeField('доставлен в', blank=True, null=True, db_index=True)
+    phonenumber = PhoneNumberField('телефон',
+                                   region=REGION_CODE,
+                                   db_index=True,
+                                   )
+    created_at = models.DateTimeField('создан в',
+                                      default=timezone.now,
+                                      db_index=True,
+                                      )
+    called_at = models.DateTimeField('подтверждён в',
+                                     blank=True,
+                                     null=True,
+                                     db_index=True,
+                                     )
+    delivered_at = models.DateTimeField('доставлен в',
+                                        blank=True,
+                                        null=True,
+                                        db_index=True,
+                                        )
     order_status = models.CharField(
         verbose_name='статус',
         max_length=2,
@@ -291,14 +304,18 @@ def enrich_orders_with_restaurants(orders: models.QuerySet) -> Iterable[Order]:
     menu_items_prefetch = models.Prefetch(
         'items__product__menu_items',
         queryset=RestaurantMenuItem.objects.select_related('restaurant',
-                                                           'product').filter(availability=True),
+                                                           'product',
+                                                           ).filter(
+            availability=True,
+        ),
     )
     orders_with_menu_items = orders.prefetch_related(menu_items_prefetch)
 
     orders_with_available_restaurants = []
     for order in orders_with_menu_items:
         counter = Counter()
-        ordered_products = [order_item.product for order_item in order.items.all()]
+        ordered_products = [order_item.product for order_item in
+                            order.items.all()]
         menu_items = []
         for product in ordered_products:
             menu_items.extend(product.menu_items.all())
@@ -317,7 +334,9 @@ def enrich_orders_with_restaurants(orders: models.QuerySet) -> Iterable[Order]:
                                )
             )
         order.restaurants = restaurants
-        order.restaurants = sorted(restaurants, key=lambda e: (e.distance is None, e.distance))
+        order.restaurants = sorted(restaurants,
+                                   key=lambda e: (e.distance is None,
+                                                  e.distance))
         orders_with_available_restaurants.append(order)
 
     # prepare coordinates and addresses
@@ -334,6 +353,7 @@ def enrich_orders_with_restaurants(orders: models.QuerySet) -> Iterable[Order]:
             rest.distance = dist.get_distance(order_address, rest.address)
 
         order.restaurants = sorted(order.restaurants,
-                                   key=lambda e: (e.distance is None, e.distance))
+                                   key=lambda e: (
+                                       e.distance is None, e.distance))
 
     return orders_with_available_restaurants

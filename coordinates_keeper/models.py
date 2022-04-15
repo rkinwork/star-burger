@@ -36,14 +36,17 @@ class Distance:
         self._address_lookup = self._prep_addresses(addresses_raw)
 
     def _prep_addresses(self, raw_addresses):
-        address_lookup = Address.objects.filter(name__in=raw_addresses).values()
+        address_lookup = Address.objects.filter(
+            name__in=raw_addresses,
+        ).values()
         address_lookup = {addr['name']: addr for addr in address_lookup}
         for r_a in raw_addresses:
             if r_a not in address_lookup:
                 address_lookup[r_a] = {'name': r_a}
-                address_lookup[r_a]['long'], address_lookup[r_a]['lat'] = self.fetch_coordinates(r_a)
-                if all([address_lookup[r_a]['long'], address_lookup[r_a]['lat']]):
-                    # create only if we have coordinates
+                long, lat = self.fetch_coordinates(r_a)
+                address_lookup[r_a]['long'] = long
+                address_lookup[r_a]['lat'] = lat
+                if all([long, lat]):
                     Address.objects.create(**address_lookup[r_a])
 
         return address_lookup
@@ -71,13 +74,15 @@ class Distance:
             "apikey": settings.YANDEX_MAP_API_KEY,
             "format": "json",
         })
+        wrn_msg = 'problems with authorizing to {}, ' \
+                  'check your STAR_BURGER__YANDEX_MAP_API_KEY'.format(base_url)
         if response.status_code == 403:
-            logging.warning(
-                'problems with authorizing to {}, check your STAR_BURGER__YANDEX_MAP_API_KEY'.format(base_url))
+            logging.warning(wrn_msg)
             return None, None
 
         response.raise_for_status()
-        found_places = response.json()['response']['GeoObjectCollection']['featureMember']
+        found_places = response.json()['response']['GeoObjectCollection'][
+            'featureMember']
 
         if not found_places:
             logging.warning('cannot find coordinates for address: {}' % address)

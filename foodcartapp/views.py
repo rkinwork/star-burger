@@ -1,15 +1,11 @@
-import json
-import pprint
-
-from django.http import JsonResponse, HttpRequest
+from django.http import JsonResponse
 from django.templatetags.static import static
-import phonenumbers
+from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework import status
 
-from .models import Product, Order, OrderItem, REGION_CODE, OrderSerializer
+from .models import OrderSerializer, Product
 
 
 def banners_list_api(request):

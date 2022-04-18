@@ -1,9 +1,10 @@
 from typing import NamedTuple
 
-from rest_framework import status
-from django.test import TestCase, Client
+from django.test import Client, TestCase
 from django.urls import reverse
-from ..models import Product, Order
+from rest_framework import status
+
+from ..models import Order, Product
 
 
 class CheckCase(NamedTuple):

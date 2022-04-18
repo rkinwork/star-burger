@@ -1,7 +1,8 @@
-from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.db.models import F
-from ..models import Order, Product, OrderItem
+from django.test import TestCase
+
+from ..models import Order, OrderItem, Product
 
 
 class OrderTest(TestCase):

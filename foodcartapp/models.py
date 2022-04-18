@@ -1,17 +1,15 @@
-from typing import Iterable
 from collections import Counter
 from dataclasses import dataclass
-
-from django.utils import timezone
-
-from django.db import models, transaction
+from typing import Iterable
 
 from django.core.validators import MinValueValidator
+from django.db import models, transaction
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field import serializerfields
-from rest_framework.serializers import ModelSerializer
+from phonenumber_field.modelfields import PhoneNumberField
 from rest_framework import serializers
+from rest_framework.serializers import ModelSerializer
 
 from coordinates_keeper.models import Distance
 
@@ -46,9 +44,9 @@ class Restaurant(models.Model):
 class ProductQuerySet(models.QuerySet):
     def available(self):
         products = (
-            RestaurantMenuItem.objects
-                .filter(availability=True)
-                .values_list('product')
+            RestaurantMenuItem.objects.filter(availability=True).values_list(
+                'product',
+            )
         )
         return self.filter(pk__in=products)
 

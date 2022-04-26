@@ -160,32 +160,14 @@ class TestOrderItem(TestCase):
         except ValidationError as err:
             self.assertIn('quantity', err.message_dict)
 
-    def test_pre_save_signal(self):
+    def test_min_value(self):
         order = Order.objects.first()
         product = Product.objects.first()
         order_item = OrderItem(
             order=order,
             product=product,
             quantity=2,
+            item_price=0
         )
-        order_item.save()
-        order_item.refresh_from_db()
-        self.assertEqual(order_item.item_price, product.price)
 
-    def test_pre_save_works_once(self):
-        order = Order.objects.first()
-        product = Product.objects.first()
-        order_item = OrderItem(
-            order=order,
-            product=product,
-            quantity=2,
-        )
-        order_item.save()
-        order_item.refresh_from_db()
-        old_item_price = order_item.item_price
-        product.price = F('price') * 2
-        product.save()
-        order_item.quantity = order_item.quantity
-        order_item.save()
-        order_item.refresh_from_db()
-        self.assertEqual(old_item_price, order_item.item_price)
+        order_item.full_clean()

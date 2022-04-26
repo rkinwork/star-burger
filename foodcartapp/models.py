@@ -138,7 +138,7 @@ class RestaurantMenuItem(models.Model):
         return f"{self.restaurant.name} - {self.product.name}"
 
 
-class NewOrderManager(models.QuerySet):
+class OrderCustomQuerySet(models.QuerySet):
     def new(self):
         return self.filter(order_status=Order.OrderStatus.NEW)
 
@@ -204,7 +204,7 @@ class Order(models.Model):
                                    null=True,
                                    )
 
-    objects = NewOrderManager.as_manager()
+    objects = OrderCustomQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'заказ'

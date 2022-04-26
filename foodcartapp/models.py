@@ -1,17 +1,8 @@
-from collections import Counter
-from dataclasses import dataclass
-from typing import Iterable
-
 from django.core.validators import MinValueValidator
-from django.db import models, transaction
+from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from phonenumber_field import serializerfields
 from phonenumber_field.modelfields import PhoneNumberField
-from rest_framework import serializers
-from rest_framework.serializers import ModelSerializer
-
-from coordinates_keeper.models import Distance
 
 REGION_CODE = 'RU'
 REMOTENESS_ATTR_NAME = 'remoteness'
@@ -248,103 +239,3 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f'{self.product} {self.order}'
-
-
-class OrderItemSerializer(ModelSerializer):
-    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
-
-    class Meta:
-        model = OrderItem
-        fields = ('product', 'quantity')
-
-
-class OrderSerializer(ModelSerializer):
-    phonenumber = serializerfields.PhoneNumberField()
-    products = OrderItemSerializer(many=True,
-                                   allow_empty=False,
-                                   source='items',
-                                   )
-
-    class Meta:
-        model = Order
-        fields = (
-            'id',
-            'address',
-            'firstname',
-            'lastname',
-            'phonenumber',
-            'products',
-        )
-        read_only_fields = ('id',)
-
-    def create(self, validated_data):
-        items = validated_data.pop('items')
-        with transaction.atomic():
-            order = Order.objects.create(**validated_data)
-            for order_item in items:
-                OrderItem.objects.create(order=order,
-                                         product=order_item['product'],
-                                         quantity=order_item['quantity'],
-                                         item_price=order_item['product'].price,
-                                         )
-
-        return order
-
-
-@dataclass
-class RestaurantItem:
-    name: str
-    address: str
-    distance: [float] = None
-
-
-def enrich_orders_with_restaurants(orders: models.QuerySet) -> Iterable[Order]:
-    menu_items_prefetch = models.Prefetch(
-        'items__product__menu_items',
-        queryset=RestaurantMenuItem.objects.select_related('restaurant',
-                                                           'product',
-                                                           ).filter(
-            availability=True,
-        ),
-    )
-    orders_with_menu_items = orders.prefetch_related(menu_items_prefetch)
-
-    orders_with_available_restaurants = []
-    addresses_raw = set()
-    for order in orders_with_menu_items:
-        addresses_raw.add(order.address)
-        counter = Counter()
-        ordered_products = [order_item.product for order_item in
-                            order.items.all()]
-        menu_items = []
-        for product in ordered_products:
-            menu_items.extend(product.menu_items.all())
-
-        for menu_item in menu_items:
-            if menu_item.product in ordered_products:
-                counter[menu_item.restaurant] += 1
-
-        restaurants = []
-        for restaurant in [restaurant
-                           for restaurant, cnt in dict(counter).items()
-                           if cnt >= len(ordered_products)]:
-            addresses_raw.add(restaurant.address)
-            restaurants.append(
-                RestaurantItem(name=restaurant.name,
-                               address=restaurant.address,
-                               )
-            )
-        order.restaurants = restaurants
-        orders_with_available_restaurants.append(order)
-
-    dist = Distance(addresses_names=addresses_raw)
-    for order in orders_with_available_restaurants:
-        order_address = order.address
-        for rest in order.restaurants:
-            rest.distance = dist.get_distance(order_address, rest.address)
-
-        order.restaurants = sorted(order.restaurants,
-                                   key=lambda e: (
-                                       e.distance is None, e.distance))
-
-    return orders_with_available_restaurants

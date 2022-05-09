@@ -1,5 +1,3 @@
-from collections import Counter
-from dataclasses import dataclass
 from typing import Iterable
 
 from django import forms
@@ -12,10 +10,9 @@ from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 
-from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem, \
-    OrderItem
+from foodcartapp.models import Product, Restaurant, Order
 
-from coordinates_keeper.distance_calc import Distance
+from coordinates_keeper.distance_calc import Distance, prepare_lookup
 
 
 class Login(forms.Form):
@@ -126,7 +123,7 @@ def enrich_orders_with_restaurants(orders: models.QuerySet) -> Iterable[Order]:
             order.restaurants.append(rest)
             addresses.append(rest.address)
 
-    dist = Distance(addresses_names=set(addresses))
+    dist = Distance(address_lookup=prepare_lookup(addresses))
     for order in orders:
         order_address = order.address
         for rest in order.restaurants:

@@ -25,8 +25,7 @@ class Distance:
                 long, lat = self.fetch_coordinates(r_a)
                 address_lookup[r_a]['long'] = long
                 address_lookup[r_a]['lat'] = lat
-                if all([long, lat]):
-                    Address.objects.create(**address_lookup[r_a])
+                Address.objects.create(**address_lookup[r_a])
 
         return address_lookup
 

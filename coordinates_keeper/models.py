@@ -7,8 +7,14 @@ class Address(models.Model):
         max_length=100,
         unique=True,
     )
-    lat = models.FloatField('Широта')
-    long = models.FloatField('Долгота')
+    lat = models.FloatField('Широта',
+                            blank=True,
+                            null=True,
+                            )
+    long = models.FloatField('Долгота',
+                             blank=True,
+                             null=True,
+                             )
     update_ts = models.DateTimeField(auto_now_add=True,
                                      blank=True,
                                      db_index=True,

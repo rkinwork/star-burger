@@ -11,21 +11,25 @@ from .models import Address
 class Distance:
 
     def __init__(self, addresses_names: Iterable[str]):
-        addresses_names = [addr.lower() for addr in addresses_names]
-        self._address_lookup = self._prep_addresses(addresses_names)
+        self._address_lookup = self._prep_addresses(
+            address.lower() for address in addresses_names
+        )
 
     def _prep_addresses(self, raw_addresses):
         address_lookup = Address.objects.filter(
             name__in=raw_addresses,
         ).values()
-        address_lookup = {addr['name']: addr for addr in address_lookup}
-        for r_a in raw_addresses:
-            if r_a not in address_lookup:
-                address_lookup[r_a] = {'name': r_a}
-                long, lat = self.fetch_coordinates(r_a)
-                address_lookup[r_a]['long'] = long
-                address_lookup[r_a]['lat'] = lat
-                Address.objects.create(**address_lookup[r_a])
+        address_lookup = {address['name']: address
+                          for address in address_lookup}
+        for address in raw_addresses:
+            if address not in address_lookup:
+                address_lookup[address] = {'name': address}
+                long, lat = self.fetch_coordinates(address)
+                address_lookup[address]['long'] = long
+                address_lookup[address]['lat'] = lat
+                Address.objects.create(
+                    **address_lookup[address]
+                )
 
         return address_lookup
 

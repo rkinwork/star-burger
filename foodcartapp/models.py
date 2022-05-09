@@ -1,5 +1,6 @@
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import OuterRef, Subquery, Count
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
@@ -139,7 +140,6 @@ class OrderCustomQuerySet(models.QuerySet):
         )
         )
 
-
 class Order(models.Model):
     class OrderStatus(models.TextChoices):
         NEW = 'Ne', _('Новый заказ')
@@ -207,6 +207,28 @@ class Order(models.Model):
     @property
     def client_full_name(self):
         return f'{self.firstname} {self.lastname}'
+
+    def get_available_restaurants(self) -> models.QuerySet:
+        available_products = models.Count(
+            'menu_items__product__items__id',
+            distinct=True,
+            filter=(
+                models.Q(menu_items__availability=True) &
+                models.Q(menu_items__product__items__order=self.id)
+            ),
+        )
+
+        ordered_products = models.Count(
+            'menu_items__product__items__order__items__id',
+            distinct=True,
+            filter=models.Q(menu_items__product__items__order=self.id),
+        )
+
+        return Restaurant.objects \
+            .filter(menu_items__product__items__order=self.id) \
+            .annotate(available_cnt=available_products) \
+            .annotate(ordered_cnt=ordered_products) \
+            .filter(available_cnt=models.F('ordered_cnt'))
 
 
 class OrderItem(models.Model):

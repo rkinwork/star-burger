@@ -1,10 +1,4 @@
-import logging
-from typing import Iterable
-
-import requests
-from django.conf import settings
 from django.db import models
-from geopy import distance
 
 
 class Address(models.Model):
